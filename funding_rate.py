@@ -20,6 +20,7 @@ binance = BinanceClient()
 
 
 def get_futures():
+    """Get list of futures assets, if envirorment variable is all then return all common futures between both exchanges"""
     if(FUTURES == 'all'):
         binance_futures = [future.replace('USDT', '')
                            for future in binance.get_all_futures()]
@@ -32,6 +33,14 @@ def get_futures():
 
 
 def plot_funding_return(_futures=[], _start=datetime(2020, 6, 8), _end=datetime.now(), _combined=True, _save=False):
+    """Plot values of two assets comparing them in two diffrents exchanges
+
+    @_futures - list of futures, if null the method gets all futures in common in both exchanges
+    @_start - Start date
+    @_end - End date
+    @_combined - If plot the result fundina a - funding b or in separated lines
+    @_sabe - If True save a png file instead pesent the output  """
+
     if(len(_futures) == 0):
         futures = get_futures()
     else:
@@ -131,7 +140,11 @@ def generate_chart(dfs, save=False):
         plt.close()
 
 
-# ['FLM', 'DOGE', 'SXP', 'UNI', 'BAL', 'XRP', 'ADA', 'BNB', 'KNC', 'TOMO', 'LINK', 'OMG', 'RUNE', 'XTZ', 'SOL', 'BCH', 'AVAX',
-# 'NEO', 'DOT', 'AAVE', 'ATOM', 'BTC', 'DEFI', 'YFI', 'HNT', 'EOS', 'MKR', 'COMP', 'TRX', 'SUSHI', 'ZEC', 'VET', 'ALGO', 'ETH', 'LTC', 'THETA', 'ETC']
-plot_funding_return([],
-                    datetime(2020, 10, 1), datetime.now(), False, True)
+if __name__ == "__main__":
+    ''' 
+    Common contracts:
+    ['FLM', 'DOGE', 'SXP', 'UNI', 'BAL', 'XRP', 'ADA', 'BNB', 'KNC', 'TOMO', 'LINK', 'OMG', 'RUNE', 'XTZ', 'SOL', 'BCH', 'AVAX',
+    'NEO', 'DOT', 'AAVE', 'ATOM', 'BTC', 'DEFI', 'YFI', 'HNT', 'EOS', 'MKR', 'COMP', 'TRX', 'SUSHI', 'ZEC', 'VET', 'ALGO', 'ETH', 'LTC', 'THETA', 'ETC']
+    '''
+    plot_funding_return([],
+                        datetime(2020, 10, 1), datetime.now(), False, True)
