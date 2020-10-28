@@ -17,7 +17,6 @@ class FtxClient:
     # UTC TIME
     def get_historical_funding_rates(self, future, start, end):
         url = f'{self._base_url}funding_rates?future={future}&start_time={start}&end_time={end}'
-        print(url)
         response = json.loads((requests.get(url)).content)
         funding_rates = response['result']
         return funding_rates

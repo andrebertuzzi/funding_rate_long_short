@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from exchange_interface import FtxClient, BinanceClient
-from logzero import logger
 from time import gmtime, strftime
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -20,12 +19,6 @@ ftx = FtxClient()
 binance = BinanceClient()
 
 
-def send_message(message):
-    if(send_telegram):
-        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-    logger.info(message)
-
-
 def get_futures():
     if(FUTURES == 'all'):
         binance_futures = [future.replace('USDT', '')
@@ -38,7 +31,7 @@ def get_futures():
         return FUTURES.split(',')
 
 
-def plot_funding_return(_futures=[], _start=datetime(2020, 6, 8), _end=datetime.now(), _combined=True):
+def plot_funding_return(_futures=[], _start=datetime(2020, 6, 8), _end=datetime.now(), _combined=True, _save=False):
     if(len(_futures) == 0):
         futures = get_futures()
     else:
@@ -103,7 +96,7 @@ def plot_funding_return(_futures=[], _start=datetime(2020, 6, 8), _end=datetime.
                 df = df * 100
                 df.index = pd.to_datetime(df.index)
                 dfs.append({'data': df, 'name': f'{future}-USDT'})
-    generate_chart(dfs, False)
+    generate_chart(dfs, _save)
 
 
 def generate_chart(dfs, save=False):
@@ -140,12 +133,5 @@ def generate_chart(dfs, save=False):
 
 # ['FLM', 'DOGE', 'SXP', 'UNI', 'BAL', 'XRP', 'ADA', 'BNB', 'KNC', 'TOMO', 'LINK', 'OMG', 'RUNE', 'XTZ', 'SOL', 'BCH', 'AVAX',
 # 'NEO', 'DOT', 'AAVE', 'ATOM', 'BTC', 'DEFI', 'YFI', 'HNT', 'EOS', 'MKR', 'COMP', 'TRX', 'SUSHI', 'ZEC', 'VET', 'ALGO', 'ETH', 'LTC', 'THETA', 'ETC']
-plot_funding_return(['COMP'],
-                    datetime(2020, 6, 8), datetime.now(), False)
-
-# while True:
-#     start_time = time.time()
-#     get_top_bottom()
-#     execution_time = time.time() - start_time
-#     # Discount execution time from DELAY
-#     time.sleep(DELAY - int(execution_time))
+plot_funding_return([],
+                    datetime(2020, 10, 1), datetime.now(), False, True)
