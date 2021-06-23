@@ -56,7 +56,6 @@ class BinanceClient:
     # UTC -3, need ajusts
     def get_historical_funding_rates(self, future, start, end):
         url = f'{self._base_url}fundingRate?symbol={future}&startTime={start}&endTime={end}'
-        print(url)
         response = json.loads((requests.get(url)).content)
         funding_rates = [{'time': (datetime.utcfromtimestamp(item['fundingTime']/1000)).strftime(
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['fundingRate'])} for item in response]
@@ -85,33 +84,32 @@ class PerpetualClient:
         return f'Amm{asset}USDC'
 
     def get_all_futures(self):
-        url = f'{self._base_url}ticker/24hr'
-        response = json.loads((requests.get(url)).content)
-        futures_names = [symbol['symbol'] for symbol in response]
-        return futures_names
+        return [ x.get('name') for x in perp_contracts]
 
     def get_historical_funding_rates(self, future, start, end):
-        contract = next(
-            filter(lambda x: future in x.get('name'), perp_contracts), None)
-        query = """
-                    {{
-                        fundingRateUpdatedEvents(
-                            where: {{ timestamp_gte: {start}, timestamp_lt: {end}, amm: "{contract}" }}
-                            orderBy: blockNumber
-                            orderDirection: asc
-                        ) {{
-                            id
-                            amm
-                            rate
-                            underlyingPrice
-                    timestamp
+        try:
+            contract = next(
+                filter(lambda x: future in x.get('name'), perp_contracts), None)
+            query = """
+                        {{
+                            fundingRateUpdatedEvents(
+                                where: {{ timestamp_gte: {start}, timestamp_lt: {end}, amm: "{contract}" }}
+                                orderBy: blockNumber
+                                orderDirection: asc
+                            ) {{
+                                id
+                                amm
+                                rate
+                                underlyingPrice
+                        timestamp
+                            }}
                         }}
-                    }}
-                """
-        query_gql = gql(query.format(start=int(start), end=int(end), contract=str(contract.get('contract'))))
-        result = self._client.execute(query_gql)
-        response = result.get('fundingRateUpdatedEvents')
-        funding_rates = [{'time': (datetime.utcfromtimestamp(int(item['timestamp']))).strftime(
-            '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['rate'])/1e18} for item in response]
-        print(funding_rates)
+                    """
+            query_gql = gql(query.format(start=int(start), end=int(end), contract=str(contract.get('contract'))))
+            result = self._client.execute(query_gql)
+            response = result.get('fundingRateUpdatedEvents')
+            funding_rates = [{'time': (datetime.utcfromtimestamp(int(item['timestamp']))).strftime(
+                '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['rate'])/1e18} for item in response]
+        except:
+            funding_rates = []
         return funding_rates
