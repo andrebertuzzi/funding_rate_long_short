@@ -15,6 +15,10 @@ class FtxClient:
     def parse(asset):
         return f'{asset}-PERP'
 
+    @staticmethod
+    def get_asset(future):
+        return future.replace('-PERP', '')
+
     def get_all_futures(self):
         url = f'{self._base_url}futures'
         response = json.loads((requests.get(url)).content)
@@ -31,27 +35,24 @@ class FtxClient:
         return funding_rates
 
 
-class BinanceClient:
+class BinanceUSDTClient:
     def __init__(self, base_url=None):
         self._base_url = 'https://www.binance.com/fapi/v1/'
-        self._base_url_usd = 'https://www.binance.com/dapi/v1/'
-        self.name = 'BINANCE'
+        self.name = 'BINANCE-USDT'
 
     @staticmethod
     def parse(asset):
         return f'{asset}USDT'
 
+    @staticmethod
+    def get_asset(future):
+        return future.replace('USDT', '')
+
     def get_all_futures(self):
         url = f'{self._base_url}ticker/24hr'
         response = json.loads((requests.get(url)).content)
         futures_names = [symbol['symbol'] for symbol in response]
-        return futures_names
-
-    def get_all_futures_usd(self):
-        url = f'{self._base_url_usd}ticker/24hr'
-        response = json.loads((requests.get(url)).content)
-        futures_names = [symbol['symbol'] for symbol in response]
-        return futures_names
+        return list(filter(lambda x: '_' not in x, futures_names))
 
     # UTC -3, need ajusts
     def get_historical_funding_rates(self, future, start, end):
@@ -61,12 +62,32 @@ class BinanceClient:
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['fundingRate'])} for item in response]
         return funding_rates
 
+
+class BinanceUSDClient:
+    def __init__(self, base_url=None):
+        self._base_url = 'https://www.binance.com/dapi/v1/'
+        self.name = 'BINANCE-USD'
+
+    @staticmethod
+    def parse(asset):
+        return f'{asset}USD_PERP'
+
+    @staticmethod
+    def get_asset(future):
+        return future.replace('USD_PERP', '')
+
+    def get_all_futures(self):
+        url = f'{self._base_url}ticker/24hr'
+        response = json.loads((requests.get(url)).content)
+        futures_names = [symbol['symbol'] for symbol in response]
+        return list(filter(lambda x: 'PERP' in x, futures_names))
+
     # UTC -3, need ajusts
-    def get_historical_funding_rates_usd(self, future, start, end):
-        url = f'{self._base_url_usd}fundingRate?symbol={future}&startTime={int(start*1000)}&endTime={int(end*1000)}'
+    def get_historical_funding_rates(self, future, start, end):
+        url = f'{self._base_url}fundingRate?symbol={future}&startTime={int(start*1000)}&endTime={int(end*1000)}'
         print(url)
         response = json.loads((requests.get(url)).content)
-        funding_rates = [{'time': (datetime.fromtimestamp(item['fundingTime']/1000) + timedelta(hours=3)).strftime(
+        funding_rates = [{'time': (datetime.utcfromtimestamp(item['fundingTime']/1000)).strftime(
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['fundingRate'])} for item in response]
         return funding_rates
 
@@ -83,8 +104,12 @@ class PerpetualClient:
     def parse(asset):
         return f'Amm{asset}USDC'
 
+    @staticmethod
+    def get_asset(future):
+        return future.replace('Amm', '').replace('USDC', '')
+
     def get_all_futures(self):
-        return [ x.get('name') for x in perp_contracts]
+        return [x.get('name') for x in perp_contracts]
 
     def get_historical_funding_rates(self, future, start, end):
         try:
@@ -105,7 +130,8 @@ class PerpetualClient:
                             }}
                         }}
                     """
-            query_gql = gql(query.format(start=int(start), end=int(end), contract=str(contract.get('contract'))))
+            query_gql = gql(query.format(start=int(start), end=int(
+                end), contract=str(contract.get('contract'))))
             result = self._client.execute(query_gql)
             response = result.get('fundingRateUpdatedEvents')
             funding_rates = [{'time': (datetime.utcfromtimestamp(int(item['timestamp']))).strftime(
