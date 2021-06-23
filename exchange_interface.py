@@ -57,7 +57,7 @@ class BinanceClient:
         url = f'{self._base_url}fundingRate?symbol={future}&startTime={start}&endTime={end}'
         print(url)
         response = json.loads((requests.get(url)).content)
-        funding_rates = [{'time': (datetime.fromtimestamp(item['fundingTime']/1000) + timedelta(hours=3)).strftime(
+        funding_rates = [{'time': (datetime.utcfromtimestamp(item['fundingTime']/1000)).strftime(
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['fundingRate'])} for item in response]
         return funding_rates
 
