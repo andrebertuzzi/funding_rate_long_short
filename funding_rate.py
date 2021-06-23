@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from exchange_interface import FtxClient, BinanceClient
 from time import gmtime, strftime
 import pandas as pd
@@ -87,7 +87,6 @@ def plot_funding_return(_prefix, _futures=[], _start=datetime(2020, 6, 8), _end=
             end = start + timedelta(days=20)
             ftx_funding_rates = ftx.get_historical_funding_rates(
                 f'{future}-PERP', start.timestamp(), end.timestamp())
-            ftx_funding_rates.reverse()
             ftx_final = ftx_final + ftx_funding_rates
             binance_funding_rates = binance.get_historical_funding_rates(
                 f'{future}USDT', int(start.timestamp()*1000), int(end.timestamp()*1000))
@@ -162,11 +161,11 @@ def plot_funding_return_binance(_prefix, _futures=[], _start=datetime(2020, 6, 8
             count += 1
             start = end
             time.sleep(5)
-    
+
         binance_usd_df = pd.DataFrame(binance_final_usd)
         binance_usdt_df = pd.DataFrame(binance_final_usdt)
         df = pd.merge(binance_usd_df, binance_usdt_df,
-                        how='outer', on='time')
+                      how='outer', on='time')
         df = df.fillna(0)
         df['rate'] = df['rate_x'] - df['rate_y']
         df['acum'] = df['rate'].cumsum()
@@ -223,6 +222,34 @@ def generate_chart(prefix, dfs, save=False):
         time.sleep(10)
         plt.close()
 
+def plot_fundings(client, _futures, _start, _end, _save=False):
+    for future in _futures:
+        dfs = []
+        final = []
+        start = _start
+        end = _end
+        count = 1
+        while(start < _end):
+            asset = client.parse(future)
+            end = start + timedelta(days=20)
+            print(f'Start {start} Ending {end}')
+            funding_rates = client.get_historical_funding_rates(
+                asset, start.timestamp(), end.timestamp())
+            final = final + funding_rates
+            count += 1
+            start = end
+            time.sleep(5)
+
+        df = pd.DataFrame(final)
+        df = df.fillna(0)
+        df['acum'] = df['rate'].cumsum()
+        df = df.set_index('time')
+        df = df['acum']
+        df = df * 100
+        df.index = pd.to_datetime(df.index)
+        dfs.append({'data': df, 'name': f'{future}'})
+        generate_chart(f'{client.name}-{future}', dfs, _save)
+
 
 if __name__ == "__main__":
     '''
@@ -244,3 +271,4 @@ if __name__ == "__main__":
     #                     datetime(2021, 5, 20), datetime.now(), True)
     plot_funding_return('BIN_FTX', get_futures(),
                         datetime(2021, 5, 20), datetime.now(), True)
+    # plot_fundings(ftx, ['BAND'], datetime(2021,5,1), datetime(2021,6,21))

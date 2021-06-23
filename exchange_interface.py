@@ -8,6 +8,11 @@ from gql.transport.aiohttp import AIOHTTPTransport
 class FtxClient:
     def __init__(self, base_url=None):
         self._base_url = 'https://ftx.com/api/'
+        self.name = 'FTX'
+
+    @staticmethod
+    def parse(asset):
+        return f'{asset}-PERP'
 
     def get_all_futures(self):
         url = f'{self._base_url}futures'
@@ -21,6 +26,7 @@ class FtxClient:
         url = f'{self._base_url}funding_rates?future={future}&start_time={start}&end_time={end}'
         response = json.loads((requests.get(url)).content)
         funding_rates = response['result']
+        funding_rates.reverse()
         return funding_rates
 
 
@@ -28,6 +34,11 @@ class BinanceClient:
     def __init__(self, base_url=None):
         self._base_url = 'https://www.binance.com/fapi/v1/'
         self._base_url_usd = 'https://www.binance.com/dapi/v1/'
+        self.name = 'BINANCE'
+
+    @staticmethod
+    def parse(asset):
+        return f'{asset}USDT'
 
     def get_all_futures(self):
         url = f'{self._base_url}ticker/24hr'
@@ -66,6 +77,7 @@ class PerpetualClient:
         transport = AIOHTTPTransport(url=self._base_url)
         self._client = Client(transport=transport,
                               fetch_schema_from_transport=True)
+        self.name = 'PERPETUAL'
 
     def get_all_futures(self):
         url = f'{self._base_url}ticker/24hr'
