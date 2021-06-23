@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timedelta
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
+from constants import PERPETUAL_CONTRACTS as perp_contracts
 
 
 class FtxClient:
@@ -79,6 +80,10 @@ class PerpetualClient:
                               fetch_schema_from_transport=True)
         self.name = 'PERPETUAL'
 
+    @staticmethod
+    def parse(asset):
+        return f'Amm{asset}USDC'
+
     def get_all_futures(self):
         url = f'{self._base_url}ticker/24hr'
         response = json.loads((requests.get(url)).content)
@@ -86,24 +91,27 @@ class PerpetualClient:
         return futures_names
 
     def get_historical_funding_rates(self, future, start, end):
+        contract = next(
+            filter(lambda x: future in x.get('name'), perp_contracts), None)
         query = """
-                    {
+                    {{
                         fundingRateUpdatedEvents(
-                            where: {timestamp_gte: {start}, timestamp_lt: {end} }
+                            where: {{ timestamp_gte: {start}, timestamp_lt: {end}, amm: "{contract}" }}
                             orderBy: blockNumber
-                            orderDirection: desc
-                        ) {
+                            orderDirection: asc
+                        ) {{
                             id
                             amm
                             rate
                             underlyingPrice
                     timestamp
-                        }
-                    }
+                        }}
+                    }}
                 """
-        query_gql = gql(query.format(start=start, end=end))
+        query_gql = gql(query.format(start=int(start), end=int(end), contract=str(contract.get('contract'))))
         result = self._client.execute(query_gql)
-        response = result.get(['fundingRateUpdatedEvents'])
+        response = result.get('fundingRateUpdatedEvents')
         funding_rates = [{'time': (datetime.utcfromtimestamp(int(item['timestamp']))).strftime(
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['rate'])/1e18} for item in response]
+        print(funding_rates)
         return funding_rates

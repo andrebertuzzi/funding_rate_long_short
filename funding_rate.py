@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from exchange_interface import FtxClient, BinanceClient
+from exchange_interface import FtxClient, BinanceClient, PerpetualClient
 from time import gmtime, strftime
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -17,6 +17,7 @@ fundings = {}
 
 ftx = FtxClient()
 binance = BinanceClient()
+perpetual = PerpetualClient()
 
 
 def get_futures():
@@ -222,7 +223,7 @@ def generate_chart(prefix, dfs, save=False):
         time.sleep(10)
         plt.close()
 
-def plot_fundings(client, _futures, _start, _end, _save=False):
+def plot_fundings(client, _futures, _start, _end, _increment=20, _save=False):
     for future in _futures:
         dfs = []
         final = []
@@ -231,7 +232,7 @@ def plot_fundings(client, _futures, _start, _end, _save=False):
         count = 1
         while(start < _end):
             asset = client.parse(future)
-            end = start + timedelta(days=20)
+            end = start + timedelta(days=_increment)
             print(f'Start {start} Ending {end}')
             funding_rates = client.get_historical_funding_rates(
                 asset, start.timestamp(), end.timestamp())
@@ -240,6 +241,7 @@ def plot_fundings(client, _futures, _start, _end, _save=False):
             start = end
             time.sleep(5)
 
+        # print(final)
         df = pd.DataFrame(final)
         df = df.fillna(0)
         df['acum'] = df['rate'].cumsum()
@@ -269,6 +271,6 @@ if __name__ == "__main__":
 
     # plot_funding_return_binance('BIN', get_futures_binance(),
     #                     datetime(2021, 5, 20), datetime.now(), True)
-    plot_funding_return('BIN_FTX', get_futures(),
-                        datetime(2021, 5, 20), datetime.now(), True)
-    # plot_fundings(ftx, ['BAND'], datetime(2021,5,1), datetime(2021,6,21))
+    # plot_funding_return('BIN_FTX', get_futures(),
+    #                     datetime(2021, 5, 20), datetime.now(), True)
+    plot_fundings(perpetual, ['ETH'], datetime(2021,5,1), datetime(2021,6,21), 3)
