@@ -108,7 +108,7 @@ def plot_funding_return(client1, client2, _prefix, _futures=[], _start=datetime(
         df = df['acum']
         df = df * 100
         df.index = pd.to_datetime(df.index)
-        dfs.append({'data': df, 'name': f'{future}-PERP'})
+        dfs.append({'data': df, 'name': client1.parse(future)})
         client2_df = pd.DataFrame(client2_final)
         df = client2_df.fillna(0)
         df['acum'] = df['rate'].cumsum()
@@ -116,7 +116,7 @@ def plot_funding_return(client1, client2, _prefix, _futures=[], _start=datetime(
         df = df['acum']
         df = df * 100
         df.index = pd.to_datetime(df.index)
-        dfs.append({'data': df, 'name': f'{future}-USDT'})
+        dfs.append({'data': df, 'name': client2.parse(future)})
         generate_chart(_prefix, dfs, _save)
 
 
