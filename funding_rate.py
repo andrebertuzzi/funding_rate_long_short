@@ -25,7 +25,7 @@ def get_common_assets(client1, client2):
     return list(set(assets1) & set(assets2))
 
 
-def plot_cross_funding_return(client1, client2, _prefix, _assets=[], _start=datetime(2020, 6, 8), _end=datetime.now(), _save=False):
+def plot_cross_funding_return(client1, client2, _assets=[], _start=datetime(2020, 6, 8), _end=datetime.now(), _save=False):
     """Plot values of two assets comparing them in two diffrents exchanges
 
     @_assets - list of assets, if null the method gets all futures in common in both exchanges
@@ -143,13 +143,14 @@ if __name__ == "__main__":
 
     Usage:
     # SIMPLE
-        plot_fundings(perpetual, perpetual.get_all_futures(), datetime(2021,5,1), datetime(2021,6,21), 3)
+        plot_fundings(perpetual, perpetual.get_all_futures(),
+                      datetime(2021,5,1), datetime(2021,6,21), 3)
     # CROSS
         assets = get_common_assets(ftx, binance_usdt))
         plot_cross_funding_return(ftx, binance_usdt, assets,
                          datetime(2021, 5, 20), datetime.now(), True)
     '''
 
-    print('FTX BINANCE_USDT', get_common_assets(ftx, binance_usdt))
-    print('FTX BINANCE_USD', get_common_assets(ftx, binance_usd))
-    print('FTX PERPETUAL', get_common_assets(ftx, perpetual))
+    assets = get_common_assets(ftx, binance_usdt)
+    plot_cross_funding_return(ftx, binance_usdt, assets, 
+                         datetime(2021, 6, 20), datetime.now(), True)
