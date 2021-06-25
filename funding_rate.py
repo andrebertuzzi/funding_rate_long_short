@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from exchange_interface import BinanceUSDClient, BinanceUSDTClient, FtxClient, PerpetualClient
+from exchanges import BinanceUSDClient, BinanceUSDTClient, FtxClient, PerpetualClient
 from time import gmtime, strftime
 import pandas as pd
 from matplotlib import pyplot as plt

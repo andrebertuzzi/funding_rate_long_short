@@ -11,7 +11,6 @@ class DataBase:
             'command': sql,
             'args': args
         }
-        print(payLoad)
         response = client.invoke(
             FunctionName='db',
             InvocationType='RequestResponse',
