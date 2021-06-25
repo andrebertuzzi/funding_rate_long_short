@@ -1,12 +1,32 @@
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
-from constants import PERPETUAL_CONTRACTS as perp_contracts
+from utils.constants import PERPETUAL_CONTRACTS as perp_contracts
 
 
-class FtxClient:
+class Exchange:
+    def get_fundings(self, futures, start, end, increment=20):
+        response = {}
+        for future in futures:
+            final = []
+            temp_end = end
+            count = 1
+            while(start < end):
+                temp_end = start + timedelta(days=increment)
+                print(f'Start {start} Ending {temp_end}')
+                funding_rates = self.get_historical_funding_rates(
+                    future, start.timestamp(), temp_end.timestamp())
+                final = final + funding_rates
+                count += 1
+                start = temp_end
+                time.sleep(5)
+            response[future] = final
+        return response
+
+
+class FtxClient(Exchange):
     def __init__(self, base_url=None):
         self._base_url = 'https://ftx.com/api/'
         self.name = 'FTX'
@@ -35,7 +55,7 @@ class FtxClient:
         return funding_rates
 
 
-class BinanceUSDTClient:
+class BinanceUSDTClient(Exchange):
     def __init__(self, base_url=None):
         self._base_url = 'https://www.binance.com/fapi/v1/'
         self.name = 'BINANCE-USDT'
@@ -63,7 +83,7 @@ class BinanceUSDTClient:
         return funding_rates
 
 
-class BinanceUSDClient:
+class BinanceUSDClient(Exchange):
     def __init__(self, base_url=None):
         self._base_url = 'https://www.binance.com/dapi/v1/'
         self.name = 'BINANCE-USD'
@@ -92,7 +112,7 @@ class BinanceUSDClient:
         return funding_rates
 
 
-class PerpetualClient:
+class PerpetualClient(Exchange):
     def __init__(self, base_url=None):
         self._base_url = 'https://api.thegraph.com/subgraphs/name/perpetual-protocol/perp-position-subgraph'
         transport = AIOHTTPTransport(url=self._base_url)
