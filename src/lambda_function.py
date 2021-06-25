@@ -3,10 +3,9 @@ from services import Services
 from exchanges import FtxClient, PerpetualClient, BinanceUSDClient, BinanceUSDTClient
 from datetime import date, datetime, timedelta
 import threading
+import json
 
 services = Services()
-last_date = services.get_load_date()
-
 
 def save_fundings(client, future, fundings):
     for funding in fundings:
@@ -38,23 +37,46 @@ def call_exchange(client, start, end, assets):
             time.sleep(5)
 
 
-# GET ALL FUNDING RATES SINCE LAST EXECUTION
-ftx = FtxClient()
-busdt = BinanceUSDTClient()
-busd = BinanceUSDClient()
-perpetual = PerpetualClient()
+def get_all_fundings(last_date):
+    """Summary or Description of the Function
+    
+    Parameters:
+    last_date (datetime): Last date when method ran, use to be yesterday
+    
+    Returns:
+    """
+    
+    ftx = FtxClient()
+    busdt = BinanceUSDTClient()
+    busd = BinanceUSDClient()
+    perpetual = PerpetualClient()
 
-assets = list(set(get_common_assets(ftx, busdt) + get_common_assets(ftx, busd) + get_common_assets(ftx, perpetual) +
-                  get_common_assets(busdt, busd) + get_common_assets(busdt,
-                                                                     perpetual) + get_common_assets(busd, perpetual)))
+    assets = list(set(get_common_assets(ftx, busdt) + get_common_assets(ftx, busd) + get_common_assets(ftx, perpetual) +
+                    get_common_assets(busdt, busd) + get_common_assets(busdt,
+                                                                        perpetual) + get_common_assets(busd, perpetual)))
 
-exchanges = [ftx, busdt, busd, perpetual]
+    exchanges = [ftx, busdt, busd, perpetual]
 
-start = datetime(2021, 1, 1)
-end = datetime(2021, 6, 24)
+    start = last_date
+    end = datetime.utcnow()
 
-threads = [threading.Thread(target=call_exchange, args=(
-    client, start, end, assets)) for client in exchanges]
-[thread.start() for thread in threads]
+    threads = [threading.Thread(target=call_exchange, args=(
+        client, start, end, assets)) for client in exchanges]
+    [thread.start() for thread in threads]
 
 # [call_exchange(client, start, end, assets) for client in exchanges]
+
+
+def lambda_handler(event, context):
+    message='All funding rates saved'
+    try:
+        last_date = services.get_load_date()
+        print(last_date)
+        get_all_fundings(last_date)
+    except:
+        message='Error trying to get funding rates'
+
+    return { 
+        'statusCode': 200,
+        'body': json.dumps(message)
+    }

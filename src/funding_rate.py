@@ -130,7 +130,7 @@ def generate_chart(prefix, dfs, save=False):
         X.set_major_locator(locator)
         X.set_major_formatter(fmt)
     if(save):
-        plt.savefig(f'output/{prefix}-{item["name"]}')
+        plt.savefig(f'../output/{prefix}-{item["name"]}')
     else:
         plt.show()
         time.sleep(10)
@@ -154,3 +154,4 @@ if __name__ == "__main__":
     assets = get_common_assets(ftx, binance_usdt)
     plot_cross_funding_return(ftx, binance_usdt, assets, 
                          datetime(2021, 6, 20), datetime.now(), True)
+
