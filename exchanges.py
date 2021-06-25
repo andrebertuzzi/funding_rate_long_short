@@ -106,7 +106,6 @@ class BinanceUSDClient(Exchange):
     # UTC -3, need ajusts
     def get_historical_funding_rates(self, future, start, end):
         url = f'{self._base_url}fundingRate?symbol={future}&startTime={int(start*1000)}&endTime={int(end*1000)}'
-        print(url)
         response = json.loads((requests.get(url)).content)
         funding_rates = [{'time': (datetime.utcfromtimestamp(item['fundingTime']/1000)).strftime(
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['fundingRate'])} for item in response]
