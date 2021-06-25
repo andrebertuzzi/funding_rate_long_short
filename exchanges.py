@@ -1,6 +1,7 @@
 import requests
 import json
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
+import time
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
 from utils.constants import PERPETUAL_CONTRACTS as perp_contracts
@@ -9,18 +10,18 @@ from utils.constants import PERPETUAL_CONTRACTS as perp_contracts
 class Exchange:
     def get_fundings(self, futures, start, end, increment=20):
         response = {}
+        print(futures)
         for future in futures:
             final = []
+            temp_start = start
             temp_end = end
-            count = 1
-            while(start < end):
-                temp_end = start + timedelta(days=increment)
-                print(f'Start {start} Ending {temp_end}')
+            while(temp_start < end):
+                temp_end = temp_start + timedelta(days=increment)
+                print(f'{future} Start {temp_start} Ending {temp_end}')
                 funding_rates = self.get_historical_funding_rates(
-                    future, start.timestamp(), temp_end.timestamp())
+                    future, temp_start.timestamp(), temp_end.timestamp())
                 final = final + funding_rates
-                count += 1
-                start = temp_end
+                temp_start = temp_end
                 time.sleep(5)
             response[future] = final
         return response
