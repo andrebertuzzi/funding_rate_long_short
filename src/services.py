@@ -10,7 +10,7 @@ class Services:
         try:
             return DataBase.query(sql, args)
         except Exception as e:
-            return e
+            print(e)
 
     def get_load_date(self):
         sql = '''select date(max(date)) as last_date from crypto.fundings;'''
@@ -20,4 +20,4 @@ class Services:
             last_date = datetime.strptime(date_str, '%Y-%m-%d')
             return last_date
         except Exception as e:
-            return e
+            print(e)
