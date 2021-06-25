@@ -18,4 +18,4 @@ class DataBase:
             LogType='None',
             Payload=json.dumps(payLoad),
         )
-        return json.loads(response['Payload'].read().decode("utf-8")).get('rows',[])
+        return json.loads(response['Payload'].read().decode("utf-8"))
