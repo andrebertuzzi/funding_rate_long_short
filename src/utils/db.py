@@ -11,10 +11,13 @@ class DataBase:
             'command': sql,
             'args': args
         }
-        response = client.invoke(
-            FunctionName='db',
-            InvocationType='RequestResponse',
-            LogType='None',
-            Payload=json.dumps(payLoad),
-        )
-        return json.loads(response['Payload'].read().decode("utf-8"))
+        try:
+            response = client.invoke(
+                FunctionName='db',
+                InvocationType='RequestResponse',
+                LogType='None',
+                Payload=json.dumps(payLoad),
+            )
+            return json.loads(response['Payload'].read().decode("utf-8"))
+        except Exception as e:
+            print(e)
