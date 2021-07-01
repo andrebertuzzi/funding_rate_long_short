@@ -25,7 +25,7 @@ def get_common_assets(client1, client2):
     return list(set(assets1) & set(assets2))
 
 
-def plot_cross_funding_return(client1, client2, _assets=[], _start=datetime(2020, 6, 8), _end=datetime.now(), _save=False):
+def plot_cross_funding_return(client1, client2, _assets=[], _start=datetime(2020, 6, 8), _end=datetime.now(), increment=20, _save=False):
     """Plot values of two assets comparing them in two diffrents exchanges
 
     @_assets - list of assets, if null the method gets all futures in common in both exchanges
@@ -41,10 +41,10 @@ def plot_cross_funding_return(client1, client2, _assets=[], _start=datetime(2020
         client2_final = []
         start = _start
         end = _end
-        print(f'{asset} Starting {start} Ending {end}')
         count = 1
         while(start < _end):
-            end = start + timedelta(days=20)
+            end = start + timedelta(days=increment)
+            print(f'{asset} Starting {start} Ending {end}')
             client1_rates = client1.get_historical_funding_rates(
                 client1.parse(asset), start.timestamp(), end.timestamp())
             client1_final = client1_final + client1_rates
@@ -85,7 +85,7 @@ def plot_cross_funding_return(client1, client2, _assets=[], _start=datetime(2020
         generate_chart(f'{client1.name}_{client2.name}', dfs, _save)
 
 
-def plot_fundings(client, _futures, _start, _end, _increment=20, _save=False):
+def plot_fundings(client, _futures, _start, _end, _increment=3, _save=False):
     dfs = []
     for future in _futures:
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
                          datetime(2021, 5, 20), datetime.now(), True)
     '''
 
-    assets = get_common_assets(ftx, binance_usdt)
-    plot_cross_funding_return(ftx, binance_usdt, assets, 
+    assets = get_common_assets(perpetual, binance_usdt)
+    plot_cross_funding_return(perpetual, binance_usdt, assets, 
                          datetime(2021, 6, 20), datetime.now(), True)
 
