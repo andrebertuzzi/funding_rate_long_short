@@ -76,6 +76,7 @@ def plot_cross_funding_return(client1, client2, _assets=[], _start=datetime(2020
         df.index = pd.to_datetime(df.index)
         dfs.append({'data': df, 'name': client1.parse(asset)})
         
+        client2_df = pd.DataFrame(client2_final)
         df = client2_df.fillna(0)
         df['acum'] = df['rate'].cumsum()
         df = df.set_index('time')
@@ -153,6 +154,6 @@ if __name__ == "__main__":
     '''
 
     assets = get_common_assets(perpetual, binance_usdt)
-    plot_cross_funding_return(perpetual, binance_usdt, ['BTC'], 
-                         datetime(2021, 6, 20), datetime.now(), 3, False)
+    plot_cross_funding_return(perpetual, binance_usdt, assets, 
+                         datetime(2021, 6, 20), datetime.now(), 3, True)
 

@@ -1,5 +1,5 @@
 import time
-
+import settings
 from requests.api import get
 from services import Services
 from exchanges import FtxClient, PerpetualClient, BinanceUSDClient, BinanceUSDTClient
@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 import threading
 import json
 import boto3
+import os
 
 services = Services()
 ftx = FtxClient()
@@ -14,6 +15,12 @@ busdt = BinanceUSDTClient()
 busd = BinanceUSDClient()
 perpetual = PerpetualClient()
 
+BINANCE_KEY = os.getenv('BINANCE_KEY')
+BINANCE_SECRET = os.getenv('BINANCE_SECRET')
+FTX_KEY = os.getenv('FTX_KEY')
+FTX_SECRET = os.getenv('FTX_SECRET')
+FTX_SUBACC = os.getenv('FTX_SUBACC')
+# ftx_client = Client_FTX(FTX_KEY, FTX_SECRET, 'Ampl', 30)
 
 def save_fundings(client, future, fundings):
     for funding in fundings:
@@ -71,12 +78,6 @@ def get_all_fundings_thread(last_date):
 
     Returns:
     """
-
-    ftx = FtxClient()
-    busdt = BinanceUSDTClient()
-    busd = BinanceUSDClient()
-    perpetual = PerpetualClient()
-
     assets = get_assets()
 
     exchanges = [ftx, busdt, busd, perpetual]
@@ -140,3 +141,5 @@ def lambda_handler(event, context):
 
 
 # lambda_handler({}, None)
+last_date = services.get_load_date()
+get_all_fundings_thread(last_date)
