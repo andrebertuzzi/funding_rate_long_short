@@ -5,7 +5,7 @@ import time
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
 from utils.constants import PERPETUAL_CONTRACTS as perp_contracts
-import urllib
+from urllib.parse import urlencode
 import hashlib
 import hmac
 
@@ -31,9 +31,14 @@ class Exchange:
 
 
 class FtxClient(Exchange):
-    def __init__(self, base_url=None):
+    def __init__(self, key=None, secret=None, account=None, base_url=None):
         self._base_url = 'https://ftx.com/api/'
+        self.PUBLIC_API_URL = 'https://ftx.com/api'
+        self.PRIVATE_API_URL = 'https://ftx.com/api'
         self.name = 'FTX'
+        self._key = key
+        self._secret = secret
+        self._acconunt = account
 
     def _build_headers(self, scope, method, endpoint, query=None):
         if query is None:
@@ -47,7 +52,7 @@ class FtxClient(Exchange):
         }
 
         if scope.lower() == 'private':
-            nonce = str(get_current_timestamp())
+            nonce = str(self.get_current_timestamp())
             payload = f'{nonce}{method.upper()}{endpoint}'
 
             if method is 'GET' and query:
@@ -55,12 +60,12 @@ class FtxClient(Exchange):
             elif query:
                 payload += json.dumps(query)
  
-            sign = hmac.new(bytes(self._api_secret, 'utf-8'), bytes(payload, 'utf-8'), hashlib.sha256).hexdigest()
+            sign = hmac.new(bytes(self._secret, 'utf-8'), bytes(payload, 'utf-8'), hashlib.sha256).hexdigest()
 
             headers.update({
                 # This header is REQUIRED to send JSON data.
                 'Content-Type': 'application/json',
-                'FTX-KEY': self._api_key,
+                'FTX-KEY': self._key,
                 'FTX-SIGN': sign,
                 'FTX-TS': nonce
             })
@@ -78,9 +83,9 @@ class FtxClient(Exchange):
             query = {}
 
         if scope.lower() == 'private':
-            url = f"{PRIVATE_API_URL}/{endpoint}"
+            url = f"{self.PRIVATE_API_URL}/{endpoint}"
         else:
-            url = f"{PUBLIC_API_URL}/{endpoint}"
+            url = f"{self.PUBLIC_API_URL}/{endpoint}"
 
         if method == 'GET':
             return f"{url}?{urlencode(query, True, '/[]')}" if len(query) > 0 else url
@@ -122,6 +127,10 @@ class FtxClient(Exchange):
     @staticmethod
     def get_asset(future):
         return future.replace('-PERP', '')
+    
+    @staticmethod
+    def get_current_timestamp():
+        return int(round(time() * 1000))
 
     def get_all_futures(self):
         url = f'{self._base_url}futures'
@@ -167,6 +176,7 @@ class FtxClient(Exchange):
             })
 
         return self._send_request('private', 'GET', f"funding_payments", query)
+
 
 
 
