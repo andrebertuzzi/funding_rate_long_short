@@ -1,6 +1,6 @@
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from time import time as _time
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
@@ -60,8 +60,9 @@ class FtxClient(Exchange):
                 payload += '?' + urlencode(query, safe='/')
             elif query:
                 payload += json.dumps(query)
- 
-            sign = hmac.new(bytes(self._secret, 'utf-8'), bytes(payload, 'utf-8'), hashlib.sha256).hexdigest()
+
+            sign = hmac.new(bytes(self._secret, 'utf-8'),
+                            bytes(payload, 'utf-8'), hashlib.sha256).hexdigest()
 
             headers.update({
                 # This header is REQUIRED to send JSON data.
@@ -73,9 +74,9 @@ class FtxClient(Exchange):
 
             if self._account:
                 headers.update({
-                # If you want to access a subaccount 
-                'FTX-SUBACCOUNT': urllib.parse.quote(self._account)
-            })
+                    # If you want to access a subaccount
+                    'FTX-SUBACCOUNT': urllib.parse.quote(self._account)
+                })
 
         return headers
 
@@ -105,16 +106,18 @@ class FtxClient(Exchange):
 
         try:
             if method == 'GET':
-                response = requests.get(url, headers = headers).json()
+                response = requests.get(url, headers=headers).json()
             elif method == 'POST':
-                response = requests.post(url, headers = headers, json = query).json()
+                response = requests.post(
+                    url, headers=headers, json=query).json()
             elif method == 'DELETE':
                 if query == {}:
-                    response = requests.delete(url, headers = headers).json()
+                    response = requests.delete(url, headers=headers).json()
                 else:
-                    response = requests.delete(url, headers = headers, json = query).json()
+                    response = requests.delete(
+                        url, headers=headers, json=query).json()
         except Exception as e:
-            print ('[x] Error: {}'.format(e.args[0]))
+            print('[x] Error: {}'.format(e.args[0]))
 
         if 'result' in response:
             return response['result']
@@ -128,7 +131,7 @@ class FtxClient(Exchange):
     @staticmethod
     def get_asset(future):
         return future.replace('-PERP', '')
-    
+
     @staticmethod
     def get_current_timestamp():
         return int(round(_time() * 1000))
@@ -148,8 +151,8 @@ class FtxClient(Exchange):
         funding_rates.reverse()
         return funding_rates
 
-    ## PRIVATE
-    def get_private_funding_payments(self, coin=None, start_time=None, end_time=None):
+    # PRIVATE
+    def get_private_funding_payments(self, asset=None, start_time=None, end_time=None):
         """
         https://docs.ftx.com/#funding-payments
 
@@ -162,23 +165,24 @@ class FtxClient(Exchange):
         query = {}
 
         if start_time != None:
-            query.update({ 
+            query.update({
                 'start_time': start_time,
             })
-        
+
         if end_time != None:
-            query.update({ 
+            query.update({
                 'end_time': end_time,
             })
 
-        if coin != None:
-            query.update({ 
-                'future': coin.upper() + '-PERP'
+        if asset != None:
+            query.update({
+                'future': self.parse(asset)
             })
 
-        return self._send_request('private', 'GET', f"funding_payments", query)
-
-
+        payments = self._send_request(
+            'private', 'GET', f"funding_payments", query)
+        return [{'exchange': self.name, 'asset': asset, 'future': self.parse(asset), 'type': 'PAYMENTS', 'type': 'PAYMENTS',
+                 'date': x.get('time'), 'rate': x.get('rate')} for x in payments]
 
 
 class BinanceUSDTClient(Exchange):
@@ -225,14 +229,18 @@ class BinanceUSDTClient(Exchange):
         https://binance-docs.github.io/apidocs/futures/en/#get-income-history-user_data
 
         """
-        
-        return self._request_futures_api('get', 'income', True, data=params)
 
-    def _request_futures_api(self, method, path, signed=False, **kwargs):
-        uri = 'https://fapi.binance.com/fapi/v1/' + path
+        uri = 'https://fapi.binance.com/fapi/v1/income'
 
-        return self._request(method, uri, signed, True, **kwargs)
-    
+        params['symbol'] = self.parse(params.get('asset'))
+
+        data = {'data': params}
+
+        payments = self._request('get', uri, True, True, **data)
+
+        return [{'exchange': self.name, 'asset': params.get('asset'), 'future': params.get('symbol'), 'type': 'PAYMENTS',
+                 'date': x.get('time'), 'rate': 0, 'payment': x.get('income'), 'notional': 0} for x in payments]
+
     def _create_website_uri(self, path):
         return self.WEBSITE_URL + '/' + path
 
@@ -278,25 +286,28 @@ class BinanceUSDTClient(Exchange):
         if signed:
             # generate signature
             kwargs['data']['timestamp'] = int(_time() * 1000)
-            kwargs['data']['signature'] = self._generate_signature(kwargs['data'])
+            kwargs['data']['signature'] = self._generate_signature(
+                kwargs['data'])
 
         # sort get and post params to match signature order
         if data:
             # sort post params
             kwargs['data'] = self._order_params(kwargs['data'])
             # Remove any arguments with values of None.
-            null_args = [i for i, (key, value) in enumerate(kwargs['data']) if value is None]
+            null_args = [i for i, (key, value) in enumerate(
+                kwargs['data']) if value is None]
             for i in reversed(null_args):
                 del kwargs['data'][i]
 
         # if get request assign data array to params value for requests lib
         if data and (method == 'get' or force_params):
-            kwargs['params'] = '&'.join('%s=%s' % (data[0], data[1]) for data in kwargs['data'])
+            kwargs['params'] = '&'.join('%s=%s' % (
+                data[0], data[1]) for data in kwargs['data'])
             del(kwargs['data'])
 
         self.response = getattr(self.session, method)(uri, **kwargs)
         return self._handle_response()
-    
+
     def _handle_response(self):
         """Internal helper for handling API responses from the Binance server.
         Raises the appropriate exceptions when necessary; otherwise, returns the
@@ -311,9 +322,12 @@ class BinanceUSDTClient(Exchange):
 
     def _generate_signature(self, data):
         ordered_data = self._order_params(data)
-        query_string = '&'.join(["{}={}".format(d[0], d[1]) for d in ordered_data])
-        m = hmac.new(self._secret.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256)
+        query_string = '&'.join(["{}={}".format(d[0], d[1])
+                                for d in ordered_data])
+        m = hmac.new(self._secret.encode('utf-8'),
+                     query_string.encode('utf-8'), hashlib.sha256)
         return m.hexdigest()
+
 
 class itemgetter:
     """
@@ -326,11 +340,13 @@ class itemgetter:
     def __init__(self, item, *items):
         if not items:
             self._items = (item,)
+
             def func(obj):
                 return obj[item]
             self._call = func
         else:
             self._items = items = (item,) + items
+
             def func(obj):
                 return tuple(obj[i] for i in items)
             self._call = func
@@ -345,6 +361,7 @@ class itemgetter:
 
     def __reduce__(self):
         return self.__class__, self._items
+
 
 class BinanceUSDClient(Exchange):
     def __init__(self, base_url=None):
