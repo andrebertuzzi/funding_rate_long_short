@@ -18,6 +18,10 @@ class DataBase:
                 LogType='None',
                 Payload=json.dumps(payLoad),
             )
-            return json.loads(response['Payload'].read().decode("utf-8"))
+            response_parsed = json.loads(response['Payload'].read().decode("utf-8"))
+            if(isinstance(response_parsed, dict) and response_parsed.get('errorType') == 'error'):
+                raise Exception(response_parsed.get('errorMessage'))
+            else:
+                return response_parsed
         except Exception as e:
             print(e)
