@@ -1,11 +1,12 @@
 import requests
 import json
 from datetime import datetime, timedelta
-import time
+from time import time as _time
 from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
 from utils.constants import PERPETUAL_CONTRACTS as perp_contracts
 from urllib.parse import urlencode
+import urllib
 import hashlib
 import hmac
 
@@ -38,7 +39,7 @@ class FtxClient(Exchange):
         self.name = 'FTX'
         self._key = key
         self._secret = secret
-        self._acconunt = account
+        self._account = account
 
     def _build_headers(self, scope, method, endpoint, query=None):
         if query is None:
@@ -70,10 +71,10 @@ class FtxClient(Exchange):
                 'FTX-TS': nonce
             })
 
-            if self._api_subacc:
+            if self._account:
                 headers.update({
                 # If you want to access a subaccount 
-                'FTX-SUBACCOUNT': urllib.parse.quote(self._api_subacc)
+                'FTX-SUBACCOUNT': urllib.parse.quote(self._account)
             })
 
         return headers
@@ -130,7 +131,7 @@ class FtxClient(Exchange):
     
     @staticmethod
     def get_current_timestamp():
-        return int(round(time() * 1000))
+        return int(round(_time() * 1000))
 
     def get_all_futures(self):
         url = f'{self._base_url}futures'
