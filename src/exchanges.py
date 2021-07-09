@@ -181,8 +181,9 @@ class FtxClient(Exchange):
 
         payments = self._send_request(
             'private', 'GET', f"funding_payments", query)
+
         return [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENTS', 'type': 'PAYMENTS',
-                 'time': x.get('time'), 'rate': x.get('rate')} for x in payments]
+                 'time': x.get('time'), 'rate': x.get('rate'), 'payment': x.get('payment'), 'notional': x.get('payment')/x.get('rate') if x.get('rate') != 0 else 0} for x in payments]
 
 
 class BinanceUSDTClient(Exchange):
