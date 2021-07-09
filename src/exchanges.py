@@ -151,8 +151,8 @@ class FtxClient(Exchange):
         funding_rates.reverse()
         return funding_rates
 
-    # PRIVATE
-    def get_private_funding_payments(self, asset=None, start_time=None, end_time=None):
+    # PRIVATE FUNCTIONS
+    def get_private_funding_payments(self, future=None, start_time=None, end_time=None):
         """
         https://docs.ftx.com/#funding-payments
 
@@ -174,15 +174,15 @@ class FtxClient(Exchange):
                 'end_time': end_time,
             })
 
-        if asset != None:
+        if future != None:
             query.update({
-                'future': self.parse(asset)
+                'future': future
             })
 
         payments = self._send_request(
             'private', 'GET', f"funding_payments", query)
-        return [{'exchange': self.name, 'asset': asset, 'future': self.parse(asset), 'type': 'PAYMENTS', 'type': 'PAYMENTS',
-                 'date': x.get('time'), 'rate': x.get('rate')} for x in payments]
+        return [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENTS', 'type': 'PAYMENTS',
+                 'time': x.get('time'), 'rate': x.get('rate')} for x in payments]
 
 
 class BinanceUSDTClient(Exchange):
@@ -223,7 +223,8 @@ class BinanceUSDTClient(Exchange):
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['fundingRate'])} for item in response]
         return funding_rates
 
-    def futures_income_history(self, **params):
+    ## PRIVATE FUNCTIONS
+    def get_private_funding_payments(self, asset=None, start_time=None, end_time=None):
         """Get income history for authenticated account
 
         https://binance-docs.github.io/apidocs/futures/en/#get-income-history-user_data
@@ -232,14 +233,14 @@ class BinanceUSDTClient(Exchange):
 
         uri = 'https://fapi.binance.com/fapi/v1/income'
 
-        params['symbol'] = self.parse(params.get('asset'))
-
+        params = { 'asset': self.parse(asset), 'startTime':start_time, 'endTime':end_time, 'incomeType':'FUNDING_FEE'}
         data = {'data': params}
-
         payments = self._request('get', uri, True, True, **data)
 
-        return [{'exchange': self.name, 'asset': params.get('asset'), 'future': params.get('symbol'), 'type': 'PAYMENTS',
-                 'date': x.get('time'), 'rate': 0, 'payment': x.get('income'), 'notional': 0} for x in payments]
+        
+
+        return [{'exchange': self.name, 'asset': params.get('asset'), 'future': x.get('symbol'), 'type': 'PAYMENTS',
+                 'time': str(datetime.fromtimestamp(x.get('time')/1000)), 'rate': 0, 'payment': x.get('income'), 'notional': 0} for x in payments]
 
     def _create_website_uri(self, path):
         return self.WEBSITE_URL + '/' + path
