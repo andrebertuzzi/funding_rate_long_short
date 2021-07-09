@@ -231,15 +231,27 @@ class BinanceUSDTClient(Exchange):
 
         """
 
+        fundings = self.get_historical_funding_rates(
+            future, start_time, end_time)
+
         uri = 'https://fapi.binance.com/fapi/v1/income'
 
         params = {'symbol': future, 'startTime': start_time,
                   'endTime': end_time, 'incomeType': 'FUNDING_FEE'}
         data = {'data': params}
         payments = self._request('get', uri, True, True, **data)
+        payments_response = [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENTS',
+                              'time': (datetime.utcfromtimestamp(x.get('time')/1000)).strftime(
+            '%Y-%m-%dT%H:%M:%S+00:00'), 'payment': float(x.get('income'))} for x in payments]
 
-        return [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENTS',
-                 'time': str(datetime.fromtimestamp(x.get('time')/1000)), 'rate': 0, 'payment': x.get('income'), 'notional': 0} for x in payments]
+        for payment in payments_response:
+            for funding in fundings:
+                if(payment['time'].split(':')[0] == funding['time'].split(':')[0]):
+                    payment['rate'] = funding['rate']
+                    payment['notional'] = abs(
+                        payment['payment'] / funding['rate']) if funding['rate'] != 0 else 0
+
+        return [payment for payment in payments_response if 'rate' in payment.keys()]
 
     def _create_website_uri(self, path):
         return self.WEBSITE_URL + '/' + path
