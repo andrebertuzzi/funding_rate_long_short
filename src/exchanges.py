@@ -223,8 +223,8 @@ class BinanceUSDTClient(Exchange):
             '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['fundingRate'])} for item in response]
         return funding_rates
 
-    ## PRIVATE FUNCTIONS
-    def get_private_funding_payments(self, asset=None, start_time=None, end_time=None):
+    # PRIVATE FUNCTIONS
+    def get_private_funding_payments(self, future=None, start_time=None, end_time=None):
         """Get income history for authenticated account
 
         https://binance-docs.github.io/apidocs/futures/en/#get-income-history-user_data
@@ -233,13 +233,12 @@ class BinanceUSDTClient(Exchange):
 
         uri = 'https://fapi.binance.com/fapi/v1/income'
 
-        params = { 'asset': self.parse(asset), 'startTime':start_time, 'endTime':end_time, 'incomeType':'FUNDING_FEE'}
+        params = {'symbol': future, 'startTime': start_time,
+                  'endTime': end_time, 'incomeType': 'FUNDING_FEE'}
         data = {'data': params}
         payments = self._request('get', uri, True, True, **data)
 
-        
-
-        return [{'exchange': self.name, 'asset': params.get('asset'), 'future': x.get('symbol'), 'type': 'PAYMENTS',
+        return [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENTS',
                  'time': str(datetime.fromtimestamp(x.get('time')/1000)), 'rate': 0, 'payment': x.get('income'), 'notional': 0} for x in payments]
 
     def _create_website_uri(self, path):
@@ -426,7 +425,7 @@ class PerpetualClient(Exchange):
                                 amm
                                 rate
                                 underlyingPrice
-                        timestamp
+                                timestamp
                             }}
                         }}
                     """
@@ -440,22 +439,47 @@ class PerpetualClient(Exchange):
             funding_rates = []
         return funding_rates
 
-    # List position changes
-    # {
-    # positionChangedEvents(where: {trader:"0x28B572F7f1Ac8cd8A01864fe39Ca5b81FE671855"}, first: 5, orderBy: blockNumber, orderDirection: desc) {
-    #     id
-    #     trader
-    #     amm
-    #     margin
-    #     positionNotional
-    #     exchangedPositionSize
-    #     fee
-    #     positionSizeAfter
-    #     realizedPnl
-    #     unrealizedPnlAfter
-    #     badDebt
-    #     liquidationPenalty
-    #     spotPrice
-    #     fundingPayment
-    #     }
-    # }
+    def get_private_funding_payments(self, future=None, start_time=None, end_time=None):
+        try:
+            contract = next(
+                filter(lambda x: future in x.get('name'), perp_contracts), None)
+            query = """
+                        {{
+                            {"operationName":"QueryTraderPositionLogsHistory","variables":
+                                {"traderAddress":"0x470caaD12Bc7C0995c64A4194D6bFFe49844bE23","limit":99999,"eventType":"FundingRateUpdated","nextToken":null},
+                                "query":"query QueryTraderPositionLogsHistory($traderAddress: String!, $eventType: String, $limit: Int, $nextToken: String) 
+                                {  queryTraderPositionLogsHistory(traderAddr: $traderAddress, filter: {eventType: {eq: $eventType}}, limit: $limit, nextToken: $nextToken) 
+                                {    items {      
+                                    traderAddr
+                                    ammAddr
+                                    blockNumber      
+                                    timestamp      
+                                    marketPair      
+                                    eventType      
+                                    positionNotional      
+                                    exchangedPositionSize      
+                                    fee      
+                                    positionSizeAfter      
+                                    realizedPnl      
+                                    underlyingPrice      
+                                    fundingRate      
+                                    estimatedFundingPayment      
+                                    txHash      
+                                    __typename    
+                                }    
+                                nextToken    __typename  }}"}
+
+
+​
+
+                        }}
+                    """
+            query_gql = gql(query.format())
+            result = self._client.execute(query_gql)
+            response = result.get('positionChangedEvents')
+            funding_rates = [{'time': (datetime.utcfromtimestamp(int(item['timestamp']))).strftime(
+                '%Y-%m-%dT%H:%M:%S+00:00'), 'rate': float(item['rate'])/1e18} for item in response]
+        except Exception as ex:
+            print(ex)
+            funding_rates = []
+        return funding_rates
