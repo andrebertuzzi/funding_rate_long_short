@@ -1,9 +1,10 @@
 import time
+import sys
 import settings
 from requests.api import get
 from services import Services
 from exchanges import FtxClient, PerpetualClient, BinanceUSDClient, BinanceUSDTClient
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import threading
 import json
 import boto3
@@ -23,8 +24,9 @@ FTX_SUBACC = os.getenv('FTX_SUBACC')
 
 
 def _get_current_positions():
-    return [{'asset': 'BAND', 'notional': 100, 'type': 'ARB', 'exchanges': ['FTX', 'BINANCEUSDT']},
-            {'asset': 'ETH', 'notional': 10000, 'type': 'ARB', 'exchanges': ['PERP', 'BINANCEUSDT']}]
+    return [{'asset': 'BAND', 'notional': 100, 'qty': 2776, 'type': 'ARB', 'exchanges': ['FTX', 'BINANCEUSDT']},
+            {'asset': 'BAO', 'notional': 100, 'qty': 2776, 'type': 'SELL', 'exchanges': ['FTX']},
+            {'asset': 'ETH', 'notional': 75813.92, 'qty': 35.56, 'type': 'ARB', 'exchanges': ['PERP', 'BINANCEUSDT']}]
 
 
 def _get_exchanges():
@@ -33,7 +35,7 @@ def _get_exchanges():
 
 def save_fundings(client, future, fundings, type):
     [services.save_trade(client.name, funding.get('time'), client.get_asset(
-        future), future, type, funding.get('rate'), funding.get('notional', 0), funding.get('payment', 0)) for funding in fundings]
+        future), future, funding.get('type'), funding.get('rate'), funding.get('notional', 0), funding.get('payment', 0)) for funding in fundings]
 
 
 def get_common_assets(client1, client2):
@@ -66,7 +68,7 @@ def call_exchange(client, start, end, assets, increment, function, type):
     futures = list(set(futures_total) & set(futures_client))
 
     print(futures)
-
+    
     for future in futures:
         temp_start = start
         temp_end = end
@@ -110,13 +112,13 @@ def get_all_payments_thread(last_date):
     Returns:
     """
     assets = [x.get('asset') for x in _get_current_positions()]
-    exchanges = [binance_client]
+    exchanges = [ftx_client, binance_client, perpetual]
 
     start = last_date
     end = datetime.utcnow()
 
     threads = [threading.Thread(target=call_exchange, args=(
-        client, start, end, assets, 3, client.get_private_funding_payments, 'PAYMENTS')) for client in exchanges]
+        client, start, end, assets, 3, client.get_private_funding_payments, 'PAYMENT')) for client in exchanges]
     [thread.start() for thread in threads]
 
 
@@ -168,13 +170,19 @@ def lambda_handler(event, context):
     }
 
 
-ftx_client = FtxClient(FTX_KEY, FTX_SECRET, FTX_SUBACC, 30)
-binance_client = BinanceUSDTClient(BINANCE_KEY, BINANCE_SECRET)
+if __name__ == '__main__':
+    ftx_client = FtxClient(FTX_KEY, FTX_SECRET, FTX_SUBACC, 30)
+    binance_client = BinanceUSDTClient(BINANCE_KEY, BINANCE_SECRET)
 
-end = datetime(2021, 7, 5)
-begin = datetime(2021, 7, 1)
-
-get_all_payments_thread(begin)
-# lambda_handler({}, None)
-# last_date = services.get_load_date()
-# get_all_fundings_thread(begin)
+    if sys.argv[1] == 'payment':
+        print('Payments')
+        payment_date = datetime.utcnow() + timedelta(days=-1)
+        get_all_payments_thread(payment_date)
+        
+    elif sys.argv[1] == 'funding':
+        print('Fundings')
+        last_date = services.get_load_date()
+        get_all_fundings_thread(last_date)
+    
+    else:
+        print('No options')
