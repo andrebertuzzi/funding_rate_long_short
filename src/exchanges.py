@@ -183,7 +183,7 @@ class FtxClient(Exchange):
             'private', 'GET', f"funding_payments", query)
 
         return [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENT',
-                 'time': x.get('time'), 'rate': x.get('rate'), 'payment': x.get('payment'), 'notional': x.get('payment')/x.get('rate') if x.get('rate') != 0 else 0} for x in payments]
+                 'time': x.get('time'), 'rate': x.get('rate'), 'payment': x.get('payment') * -1, 'notional': x.get('payment')/x.get('rate') if x.get('rate') != 0 else 0} for x in payments]
 
 
 class BinanceUSDTClient(Exchange):
@@ -457,7 +457,7 @@ class PerpetualClient(Exchange):
         try:
             custom_header = {"x-api-key": "da2-eefr56k5rjbdtcub34gaxxrc6m"}
             url = 'https://nlyyyotn4jbw7cyslyqr7awz24.appsync-api.ap-southeast-1.amazonaws.com/graphql'
-            payload = '{"operationName":"QueryTraderPositionLogsHistory","variables":{"traderAddress":"0x470caaD12Bc7C0995c64A4194D6bFFe49844bE23","limit":9999,"eventType":"FundingRateUpdated","nextToken":null},"query":"query QueryTraderPositionLogsHistory($traderAddress: String!, $eventType: String, $limit: Int, $nextToken: String) {queryTraderPositionLogsHistory(traderAddr: $traderAddress, filter: {eventType: {eq: $eventType}}, limit: $limit, nextToken: $nextToken) {    items {      timestamp      marketPair      fundingRate      estimatedFundingPayment}    nextToken    __typename}}"}'
+            payload = '{"operationName":"QueryTraderPositionLogsHistory","variables":{"traderAddress":"0x470caaD12Bc7C0995c64A4194D6bFFe49844bE23","limit":48,"eventType":"FundingRateUpdated","nextToken":null},"query":"query QueryTraderPositionLogsHistory($traderAddress: String!, $eventType: String, $limit: Int, $nextToken: String) {queryTraderPositionLogsHistory(traderAddr: $traderAddress, filter: {eventType: {eq: $eventType}}, limit: $limit, nextToken: $nextToken) {    items {      timestamp      marketPair      fundingRate      estimatedFundingPayment}    nextToken    __typename}}"}'
 
             r = json.loads(requests.post(
                 url, headers=custom_header, data=payload).content)
@@ -466,10 +466,10 @@ class PerpetualClient(Exchange):
 
             payments_response1 =  [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENT1',
                      'time': datetime.utcfromtimestamp(x.get('timestamp')).strftime('%Y-%m-%dT%H:%M:%S+00:00'), 
-                     'rate': float(x.get('fundingRate')), 'payment': float(x.get('estimatedFundingPayment')),
+                     'rate': float(x.get('fundingRate')), 'payment': float(x.get('estimatedFundingPayment')) * -1,
                      'notional': float(x.get('estimatedFundingPayment'))/float(x.get('fundingRate')) if float(x.get('fundingRate')) != 0 else 0} for x in payments]
             
-            payload = '{"operationName":"QueryTraderPositionLogsHistory","variables":{"traderAddress":"0x28B572F7f1Ac8cd8A01864fe39Ca5b81FE671855","limit":9999,"eventType":"FundingRateUpdated","nextToken":null},"query":"query QueryTraderPositionLogsHistory($traderAddress: String!, $eventType: String, $limit: Int, $nextToken: String) {queryTraderPositionLogsHistory(traderAddr: $traderAddress, filter: {eventType: {eq: $eventType}}, limit: $limit, nextToken: $nextToken) {    items {      timestamp      marketPair      fundingRate      estimatedFundingPayment}    nextToken    __typename}}"}'
+            payload = '{"operationName":"QueryTraderPositionLogsHistory","variables":{"traderAddress":"0x28B572F7f1Ac8cd8A01864fe39Ca5b81FE671855","limit":48,"eventType":"FundingRateUpdated","nextToken":null},"query":"query QueryTraderPositionLogsHistory($traderAddress: String!, $eventType: String, $limit: Int, $nextToken: String) {queryTraderPositionLogsHistory(traderAddr: $traderAddress, filter: {eventType: {eq: $eventType}}, limit: $limit, nextToken: $nextToken) {    items {      timestamp      marketPair      fundingRate      estimatedFundingPayment}    nextToken    __typename}}"}'
 
             r = json.loads(requests.post(
                 url, headers=custom_header, data=payload).content)
@@ -478,7 +478,7 @@ class PerpetualClient(Exchange):
 
             payments_response2 =  [{'exchange': self.name, 'asset': self.get_asset(future), 'future': future, 'type': 'PAYMENT2',
                      'time': datetime.utcfromtimestamp(x.get('timestamp')).strftime('%Y-%m-%dT%H:%M:%S+00:00'), 
-                     'rate': float(x.get('fundingRate')), 'payment': float(x.get('estimatedFundingPayment')),
+                     'rate': float(x.get('fundingRate')), 'payment': float(x.get('estimatedFundingPayment')) * -1,
                      'notional': float(x.get('estimatedFundingPayment'))/float(x.get('fundingRate')) if float(x.get('fundingRate')) != 0 else 0} for x in payments]
             
             
